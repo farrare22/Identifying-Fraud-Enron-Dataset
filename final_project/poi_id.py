@@ -1,10 +1,10 @@
 
 # coding: utf-8
 
-# In[12]:
+# In[25]:
 
 #!/usr/bin/python
-# NOTE:  Python kept crashing when running the matplotlib.pyploy commands from
+# NOTE:  Python kept crashing when running the matplotlib.pyplot commands from
 # command line.  Therefore, I've commented them out.  To see the plots, please
 # refer to poi_id.pdf or the notebook, poi_id.ipynb
 #
@@ -39,7 +39,7 @@ from sklearn.cross_validation import StratifiedShuffleSplit
 from sklearn.grid_search import GridSearchCV
 
 
-# In[13]:
+# In[26]:
 
 ### Task 1: Select what features you'll use.
 ### features_list is a list of strings, each of which is a feature name.
@@ -68,19 +68,42 @@ print "All Features:", data_dict[data_dict.keys()[0]].keys(), "\n"
 
 print "Number of Features:", len(data_dict[data_dict.keys()[0]].keys())
 
+labels=[]
+nans=[]
+nnans=[]
 for feature in data_dict[data_dict.keys()[0]].keys():
     nan=0
+    nnan=0
     for person in data_dict:
         if data_dict[person][feature] == 'NaN':
             nan += 1
-            
+        else:
+            nnan += 1
+    labels.append(feature)
+    nans.append(nan)
+    nnans.append(nnan)
     print feature, "has", nan, "records with missing values."
-    
-
-    
 
 
-# In[14]:
+
+# In[27]:
+
+# Create a stacked bar chart showing the good and bad data for each feature
+
+#n = range(0,len(labels),1)
+#width = .8
+#
+#matplotlib.pyplot.figure(figsize=(10,5))
+#bnnan = matplotlib.pyplot.bar(n, nnans, width, color='g', align='center')  # Good Data
+#bnan = matplotlib.pyplot.bar(n, nans, width, color='r', bottom=nnans, align='center')  # Bad Data
+#matplotlib.pyplot.title('Good vs Bad Data by Feature')
+#matplotlib.pyplot.xticks(n, labels, rotation=90)
+#matplotlib.pyplot.yticks(range(0,151,10))
+#matplotlib.pyplot.legend((bnnan[0], bnan[0]), ('Good', 'Bad'))
+#matplotlib.pyplot.show()
+
+
+# In[28]:
 
 ### Task 2: Remove outliers
 #
@@ -100,7 +123,7 @@ for feature in data_dict[data_dict.keys()[0]].keys():
     
 
 
-# In[15]:
+# In[29]:
 
 # Locate bad data (if any)
 for person in data_dict:
@@ -119,7 +142,7 @@ for person in data_dict:
     
 
 
-# In[16]:
+# In[30]:
 
 # By looking at the historgrams and and the "person" with the max value, 
 # it becomes obvious that "TOTAL" is a sum of the data and not a valid person.
@@ -153,7 +176,7 @@ for feature in data_dict[data_dict.keys()[0]].keys():
 # No further cleaning is required.
 
 
-# In[17]:
+# In[31]:
 
 ### Task 3: Create new feature(s)
 ### Store to my_dataset for easy export below.
@@ -176,9 +199,15 @@ for person in my_dataset:
     else:
         my_dataset[person]['poi_email_ratio'] = 'NaN'
         
+# Create a feature_list that has all features on it.  We will use selectKBest to determine the best features to keep.
+all_features = data_dict[my_dataset.keys()[0]].keys()
+all_features.remove('poi')
+all_features.remove('email_address')
+features_list = ['poi']
+features_list.extend(all_features)
 
 
-# In[18]:
+# In[32]:
 
 ### Task 4: Try a varity of classifiers
 ### Please name your classifier clf for easy export below.
@@ -284,11 +313,11 @@ for person in my_dataset:
 pipeline = Pipeline(steps=[('kbest', SelectKBest(score_func=f_classif)),
                             ('clf', GaussianNB())
                             ])
-p_params = {'kbest__k': [5, 10, 15, 20]}
+p_params = {'kbest__k': range(1, len(features_list), 1)}
 
 
 
-# In[19]:
+# In[33]:
 
 ### Task 5: Tune your classifier to achieve better than .3 precision and recall 
 ### using our testing script. Check the tester.py script in the final project
@@ -297,7 +326,6 @@ p_params = {'kbest__k': [5, 10, 15, 20]}
 ### stratified shuffle split cross validation. For more info: 
 ### http://scikit-learn.org/stable/modules/generated/sklearn.cross_validation.StratifiedShuffleSplit.html
 
-# Example starting point. Try investigating other evaluation techniques!
 # Create a feature_list that has all features on it.  We will use selectKBest to determine the best features to keep.
 all_features = data_dict[my_dataset.keys()[0]].keys()
 all_features.remove('poi')
@@ -317,7 +345,7 @@ shuffle = StratifiedShuffleSplit(labels, n_iter=1000, test_size=0.3, random_stat
 scorer = 'f1'
 
 
-# In[20]:
+# In[34]:
 
 # Find the best classifer
 t0 = time()
@@ -327,27 +355,29 @@ p_grid.fit(features, labels)
 print "fit time:", round(time()-t0, 3), "s"
 
 
-# In[21]:
+# In[35]:
 
 # Results....
 features_selected = p_grid.best_estimator_.named_steps['kbest'].get_support()
 x=0
-print "Feature(Score) Selected:"
+print "Feature(Score):"
 for feat in features_list:
     if feat == "poi":
         continue
     if features_selected[x] == True:
-        print '   %s(%f)' % (feat, p_grid.best_estimator_.named_steps['kbest'].scores_[x])
+        print '   %s(%f)  Selected' % (feat, p_grid.best_estimator_.named_steps['kbest'].scores_[x])
+    else:
+        print '      %s(%f)  Not Selected' % (feat, p_grid.best_estimator_.named_steps['kbest'].scores_[x])
     x += 1
-print "Score:", p_grid.best_score_
-print "Params:", p_grid.best_params_ 
+print "Grid Best Score:", p_grid.best_score_
+print "Best Params:", p_grid.best_params_ 
 
 clf = p_grid.best_estimator_
 test_classifier(clf, my_dataset, features_list)
 
 
 
-# In[22]:
+# In[36]:
 
 ### Task 6: Dump your classifier, dataset, and features_list so anyone can
 ### check your results. You do not need to change anything below, but make sure
